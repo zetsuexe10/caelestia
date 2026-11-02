@@ -1,0 +1,555 @@
+#!/usr/bin/env python3
+import glob
+import json
+import math
+import os
+import random
+import shutil
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+HOME = Path.home()
+ROOT = Path(os.environ.get("CAELESTIA_HOME", HOME / ".caelestia"))
+CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", HOME / ".config"))
+STATE = Path(os.environ.get("XDG_STATE_HOME", HOME / ".local/state")) / "caelestia"
+WALLS = Path(os.environ.get("CAELESTIA_WALLPAPERS_DIR", HOME / "Pictures/Wallpapers"))
+SCHEME_FILE = STATE / "scheme.json"
+SCHEME_CONF = STATE / "scheme-config.json"
+SEQUENCES = STATE / "sequences.txt"
+WALL_FILE = STATE / "wallpaper" / "path.txt"
+HYPR_SCHEME = CONFIG / "hypr" / "scheme" / "current.lua"
+FALLBACK_WALL = CONFIG / "quickshell" / "caelestia" / "assets" / "wallpaper.webp"
+
+PRESETS = {
+    "caelestia": "#a8627b",
+    "ocean": "#4f86c6",
+    "forest": "#5f9460",
+    "amber": "#c0883a",
+    "violet": "#8466c4",
+}
+VARIANTS = ["vibrant", "tonalspot", "expressive", "fidelity", "content", "fruitsalad", "rainbow", "neutral", "monochrome"]
+DEFAULTS = {"name": "caelestia", "flavour": "default", "mode": "dark", "variant": "tonalspot"}
+
+
+def run(cmd, **kw):
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, **kw)
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def spawn(cmd):
+    try:
+        subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    except OSError:
+        pass
+
+
+def notify(title, body="", icon=None):
+    cmd = ["notify-send", "-a", "caelestia", title, body]
+    if icon:
+        cmd += ["-i", str(icon)]
+    run(cmd)
+
+
+def need(*tools):
+    missing = [t for t in tools if not shutil.which(t)]
+    if missing:
+        sys.stderr.write("missing: " + ", ".join(missing) + "\n")
+        sys.exit(1)
+
+
+def srgb_to_lin(c):
+    return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+
+def lin_to_srgb(c):
+    c = max(0.0, min(1.0, c))
+    return 12.92 * c if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055
+
+
+def hex_to_oklch(h):
+    h = h.lstrip("#")
+    r, g, b = (srgb_to_lin(int(h[i:i + 2], 16) / 255) for i in (0, 2, 4))
+    l = (0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) ** (1 / 3)
+    m = (0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) ** (1 / 3)
+    s = (0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b) ** (1 / 3)
+    L = 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s
+    a = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s
+    bb = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s
+    return L, math.hypot(a, bb), math.degrees(math.atan2(bb, a)) % 360
+
+
+def oklch_to_lin(L, C, h):
+    a = C * math.cos(math.radians(h))
+    b = C * math.sin(math.radians(h))
+    l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3
+    m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3
+    s = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3
+    return (
+        4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+        -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+        -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s,
+    )
+
+
+def tone_to_L(t):
+    y = ((t + 16) / 116) ** 3 if t > 8 else t / 903.3
+    return y ** (1 / 3)
+
+
+def tone(hue, chroma, t):
+    if t >= 100:
+        return "ffffff"
+    if t <= 0:
+        return "000000"
+    L = tone_to_L(t)
+    lo, hi = 0.0, chroma
+    best = (0.0, 0.0, 0.0)
+    for _ in range(18):
+        mid = (lo + hi) / 2
+        rgb = oklch_to_lin(L, mid, hue)
+        if all(-0.0005 <= v <= 1.0005 for v in rgb):
+            best = rgb
+            lo = mid
+        else:
+            hi = mid
+    if lo == 0.0:
+        best = oklch_to_lin(L, 0.0, hue)
+    return "".join(f"{round(lin_to_srgb(v) * 255):02x}" for v in best)
+
+
+def palette_spec(variant, hue, sc):
+    sc = max(0.03, min(0.2, sc))
+    table = {
+        "tonalspot": ((0, 0.12), (0, 0.04), (60, 0.06), 0.012, 0.018),
+        "vibrant": ((0, 0.18), (15, 0.07), (60, 0.10), 0.012, 0.018),
+        "expressive": ((240, 0.13), (15, 0.07), (60, 0.10), 0.016, 0.024),
+        "fidelity": ((0, sc), (0, sc * 0.35), (60, sc * 0.6), sc / 8, sc / 4),
+        "content": ((0, sc), (0, sc * 0.35), (60, sc * 0.6), sc / 8, sc / 4),
+        "fruitsalad": ((-50, 0.14), (-50, 0.09), (0, 0.09), 0.012, 0.018),
+        "rainbow": ((0, 0.13), (0, 0.045), (60, 0.07), 0.002, 0.004),
+        "neutral": ((0, 0.03), (0, 0.02), (0, 0.025), 0.004, 0.006),
+        "monochrome": ((0, 0.0), (0, 0.0), (0, 0.0), 0.0, 0.0),
+    }
+    p, s, t, n, nv = table.get(variant, table["tonalspot"])
+    return (
+        ((hue + p[0]) % 360, p[1]),
+        ((hue + s[0]) % 360, s[1]),
+        ((hue + t[0]) % 360, t[1]),
+        (hue, n),
+        (hue, nv),
+    )
+
+
+def build_colours(seed, variant, mode):
+    _, sc, hue = hex_to_oklch(seed)
+    P, S, T, N, NV = palette_spec(variant, hue, sc)
+    dark = mode != "light"
+    g = {}
+
+    def p(key, spec, t):
+        g[key] = tone(spec[0], spec[1], t)
+
+    for key, spec in (("primary", P), ("secondary", S), ("tertiary", T)):
+        g[key + "_paletteKeyColor"] = tone(spec[0], spec[1], 50)
+    g["neutral_paletteKeyColor"] = tone(N[0], N[1], 50)
+    g["neutral_variant_paletteKeyColor"] = tone(NV[0], NV[1], 50)
+
+    if dark:
+        surf = {"background": 6, "surface": 6, "surfaceDim": 6, "surfaceBright": 24, "surfaceContainerLowest": 4,
+                "surfaceContainerLow": 10, "surfaceContainer": 12, "surfaceContainerHigh": 17, "surfaceContainerHighest": 22,
+                "onBackground": 90, "onSurface": 90, "inverseSurface": 90, "inverseOnSurface": 20}
+        var = {"surfaceVariant": 30, "onSurfaceVariant": 80, "outline": 60, "outlineVariant": 30}
+        accent = (80, 20, 30, 90)
+        inv = 40
+        err = {"error": "ffb4ab", "onError": "690005", "errorContainer": "93000a", "onErrorContainer": "ffdad6"}
+        suc = (80, 20, 30, 90)
+    else:
+        surf = {"background": 98, "surface": 98, "surfaceDim": 87, "surfaceBright": 98, "surfaceContainerLowest": 100,
+                "surfaceContainerLow": 96, "surfaceContainer": 94, "surfaceContainerHigh": 92, "surfaceContainerHighest": 90,
+                "onBackground": 10, "onSurface": 10, "inverseSurface": 20, "inverseOnSurface": 95}
+        var = {"surfaceVariant": 90, "onSurfaceVariant": 30, "outline": 50, "outlineVariant": 80}
+        accent = (40, 100, 90, 10)
+        inv = 80
+        err = {"error": "ba1a1a", "onError": "ffffff", "errorContainer": "ffdad6", "onErrorContainer": "410002"}
+        suc = (40, 100, 90, 10)
+
+    for key, t in surf.items():
+        p(key, N, t)
+    for key, t in var.items():
+        p(key, NV, t)
+    g["shadow"] = "000000"
+    g["scrim"] = "000000"
+
+    for name, spec in (("primary", P), ("secondary", S), ("tertiary", T)):
+        cap = name.capitalize()
+        p(name, spec, accent[0])
+        p("on" + cap, spec, accent[1])
+        p(name + "Container", spec, accent[2])
+        p("on" + cap + "Container", spec, accent[3])
+        p(name + "Fixed", spec, 90)
+        p(name + "FixedDim", spec, 80)
+        p("on" + cap + "Fixed", spec, 10)
+        p("on" + cap + "FixedVariant", spec, 30)
+
+    g["surfaceTint"] = g["primary"]
+    p("inversePrimary", P, inv)
+    g.update(err)
+
+    sh = (148, 0.035 if variant != "monochrome" else 0.0)
+    p("success", sh, suc[0])
+    p("onSuccess", sh, suc[1])
+    p("successContainer", sh, suc[2])
+    p("onSuccessContainer", sh, suc[3])
+
+    tint = 0.15
+    hues = [25, 145, 90, 255, 330, 200]
+    base_t, bright_t = (70, 82) if dark else (42, 52)
+    term_c = 0.10 if variant != "monochrome" else 0.0
+    g["term0"] = tone(N[0], N[1], 20 if dark else 90)
+    g["term8"] = tone(N[0], N[1], 40 if dark else 70)
+    for i, h in enumerate(hues, start=1):
+        h2 = h + ((hue - h + 180) % 360 - 180) * tint
+        g[f"term{i}"] = tone(h2, term_c, base_t)
+        g[f"term{i + 8}"] = tone(h2, term_c, bright_t)
+    g["term7"] = tone(N[0], N[1], 85 if dark else 30)
+    g["term15"] = tone(N[0], N[1], 98 if dark else 10)
+    return g
+
+
+def image_seed(path):
+    try:
+        from PIL import Image
+    except ImportError:
+        return None, None
+    try:
+        with Image.open(path) as im:
+            im = im.convert("RGB")
+            im.thumbnail((96, 96))
+            raw = im.tobytes()
+            px = [(raw[i], raw[i + 1], raw[i + 2]) for i in range(0, len(raw) - 2, 3)]
+    except (OSError, ValueError):
+        return None, None
+    if not px:
+        return None, None
+    lum = sum(0.299 * r + 0.587 * g + 0.114 * b for r, g, b in px) / len(px) / 255
+    buckets = {}
+    for r, g, b in px:
+        L, C, h = hex_to_oklch(f"{r:02x}{g:02x}{b:02x}")
+        if L < 0.15 or L > 0.95:
+            continue
+        key = int(h // 15)
+        w = C * (1 - abs(L - 0.6))
+        e = buckets.setdefault(key, [0.0, 0.0, 0.0])
+        e[0] += w
+        e[1] += w * C
+        e[2] += w * L
+    if not buckets:
+        return "#808080", lum
+    key = max(buckets, key=lambda k: buckets[k][0])
+    w, wc, wl = buckets[key]
+    L, C, h = wl / w, wc / w, key * 15 + 7.5
+    rgb = oklch_to_lin(0.6, min(C, 0.15), h)
+    return "#" + "".join(f"{round(lin_to_srgb(v) * 255):02x}" for v in rgb), lum
+
+
+def load_conf():
+    try:
+        return {**DEFAULTS, **json.loads(SCHEME_CONF.read_text())}
+    except (OSError, ValueError):
+        return dict(DEFAULTS)
+
+
+def current_wall():
+    try:
+        p = WALL_FILE.read_text().strip()
+        if p and Path(p).exists():
+            return p
+    except OSError:
+        pass
+    return str(FALLBACK_WALL)
+
+
+def scheme_colours(conf, wall=None):
+    name = conf["name"]
+    if name == "dynamic":
+        seed, _ = image_seed(wall or current_wall())
+        seed = seed or PRESETS["caelestia"]
+    else:
+        seed = PRESETS.get(name, PRESETS["caelestia"])
+    return build_colours(seed, conf["variant"], conf["mode"])
+
+
+def write_hypr(colours):
+    try:
+        HYPR_SCHEME.parent.mkdir(parents=True, exist_ok=True)
+        body = "return {\n" + "".join(f'    {k} = "{v}",\n' for k, v in colours.items()) + "}\n"
+        HYPR_SCHEME.write_text(body)
+    except OSError:
+        return
+    if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
+        run(["hyprctl", "reload"])
+
+
+def write_sequences(colours):
+    bg, fg = colours["surface"], colours["onSurface"]
+    seq = ""
+    for i in range(16):
+        seq += f"\033]4;{i};#{colours[f'term{i}']}\033\\"
+    seq += f"\033]10;#{fg}\033\\\033]11;#{bg}\033\\\033]12;#{fg}\033\\"
+    try:
+        SEQUENCES.write_text(seq)
+    except OSError:
+        return
+    for pts in glob.glob("/dev/pts/[0-9]*"):
+        try:
+            if os.stat(pts).st_uid == os.getuid():
+                with open(pts, "w") as fh:
+                    fh.write(seq)
+        except OSError:
+            continue
+
+
+def apply_scheme(conf, notify_change=False):
+    STATE.mkdir(parents=True, exist_ok=True)
+    colours = scheme_colours(conf)
+    SCHEME_CONF.write_text(json.dumps(conf))
+    tmp = SCHEME_FILE.with_suffix(".tmp")
+    tmp.write_text(json.dumps({**{k: conf[k] for k in ("name", "flavour", "mode", "variant")}, "colours": colours}))
+    tmp.replace(SCHEME_FILE)
+    write_sequences(colours)
+    write_hypr(colours)
+    if notify_change:
+        notify("Scheme changed", f"{conf['name']} {conf['flavour']} ({conf['mode']}, {conf['variant']})")
+
+
+def parse(args, valued, flags):
+    out = {"_": []}
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a in valued:
+            i += 1
+            out[a] = args[i] if i < len(args) else ""
+        elif a in flags:
+            out[a] = True
+        else:
+            out["_"].append(a)
+        i += 1
+    return out
+
+
+def cmd_scheme(args):
+    sub = args[0] if args else "get"
+    rest = args[1:]
+    conf = load_conf()
+    if sub == "list":
+        preview = {}
+        for name in list(PRESETS) + ["dynamic"]:
+            c = scheme_colours({**conf, "name": name})
+            preview[name] = {"default": {k: c[k] for k in ("outline", "surface", "primary", "secondary", "tertiary")}}
+        print(json.dumps(preview))
+    elif sub == "get":
+        o = parse(rest, set(), {"-n", "-f", "-v", "-m"})
+        fields = []
+        if "-n" in o:
+            fields.append(conf["name"])
+        if "-f" in o:
+            fields.append(conf["flavour"])
+        if "-v" in o:
+            fields.append(conf["variant"])
+        if "-m" in o:
+            fields.append(conf["mode"])
+        if not fields:
+            fields = [conf["name"], conf["flavour"], conf["variant"], conf["mode"]]
+        print("\n".join(fields))
+    elif sub == "set":
+        o = parse(rest, {"-n", "-f", "-m", "-v"}, {"--notify", "--no-smart"})
+        if o.get("-n"):
+            conf["name"] = o["-n"]
+        if o.get("-f"):
+            conf["flavour"] = o["-f"]
+        if o.get("-m") in ("dark", "light"):
+            conf["mode"] = o["-m"]
+        if o.get("-v") in VARIANTS:
+            conf["variant"] = o["-v"]
+        apply_scheme(conf, "--notify" in o)
+    else:
+        sys.exit(f"unknown scheme command: {sub}")
+
+
+def cmd_wallpaper(args):
+    o = parse(args, {"-f", "-p"}, {"-r", "--no-smart"})
+    conf = load_conf()
+    if "-p" in o:
+        c = scheme_colours(conf, o["-p"])
+        print(json.dumps({**{k: conf[k] for k in ("name", "flavour", "mode", "variant")}, "colours": c}))
+        return
+    path = None
+    if "-f" in o:
+        path = str(Path(o["-f"]).expanduser().resolve())
+    elif "-r" in o:
+        exts = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif"}
+        files = [str(p) for p in WALLS.rglob("*") if p.suffix.lower() in exts] if WALLS.is_dir() else []
+        if not files:
+            sys.exit(f"no wallpapers in {WALLS}")
+        current = current_wall()
+        pool = [f for f in files if f != current] or files
+        path = random.choice(pool)
+    if not path or not Path(path).is_file():
+        sys.exit("wallpaper not found")
+    WALL_FILE.parent.mkdir(parents=True, exist_ok=True)
+    WALL_FILE.write_text(path)
+    if conf["name"] == "dynamic":
+        if "--no-smart" not in o:
+            _, lum = image_seed(path)
+            if lum is not None:
+                conf["mode"] = "light" if lum > 0.6 else "dark"
+        apply_scheme(conf)
+
+
+def cmd_shell(args):
+    o = parse(args, set(), {"-d", "-k", "-r", "-s"})
+    rest = o["_"]
+    if "-k" in o or "-r" in o:
+        run(["qs", "kill", "-c", "caelestia"])
+        if "-r" in o:
+            time.sleep(0.4)
+    if "-d" in o or ("-r" in o):
+        spawn(["qs", "-c", "caelestia", "-n", "-d"])
+        return
+    if "-k" in o:
+        return
+    if rest:
+        r = run(["qs", "-c", "caelestia", "ipc", "call", *rest])
+        if r and r.stdout:
+            sys.stdout.write(r.stdout)
+        sys.exit(r.returncode if r else 1)
+    os.execvp("qs", ["qs", "-c", "caelestia"])
+
+
+def focused_monitor():
+    r = run(["hyprctl", "monitors", "-j"])
+    if r and r.stdout:
+        try:
+            for m in json.loads(r.stdout):
+                if m.get("focused"):
+                    return m["name"]
+        except (ValueError, KeyError):
+            pass
+    return "screen"
+
+
+def pick_region():
+    r = run(["slurp", "-f", "%wx%h+%x+%y"])
+    return r.stdout.strip() if r and r.returncode == 0 and r.stdout.strip() else None
+
+
+def cmd_screenshot(args):
+    need("grim", "wl-copy")
+    o = parse(args, set(), {"-r"})
+    target = HOME / "Pictures" / "Screenshots"
+    target.mkdir(parents=True, exist_ok=True)
+    out = target / time.strftime("screenshot_%Y%m%d_%H%M%S.png")
+    cmd = ["grim"]
+    if "-r" in o:
+        need("slurp")
+        r = run(["slurp"])
+        if not r or r.returncode != 0:
+            return
+        cmd += ["-g", r.stdout.strip()]
+    run(cmd + [str(out)])
+    if out.exists():
+        with open(out, "rb") as fh:
+            subprocess.run(["wl-copy", "--type", "image/png"], stdin=fh)
+        notify("Screenshot saved", str(out), out)
+
+
+def cmd_record(args):
+    need("gpu-screen-recorder")
+    o = parse(args, set(), {"-s", "-r", "-p"})
+    pid = run(["pidof", "gpu-screen-recorder"])
+    running = bool(pid and pid.returncode == 0)
+    if "-p" in o:
+        if running:
+            run(["pkill", "-SIGUSR2", "-x", "gpu-screen-recorder"])
+        return
+    if running:
+        run(["pkill", "-SIGINT", "-x", "gpu-screen-recorder"])
+        notify("Recording stopped")
+        return
+    target = HOME / "Videos" / "Recordings"
+    target.mkdir(parents=True, exist_ok=True)
+    out = target / time.strftime("recording_%Y%m%d_%H%M%S.mp4")
+    cmd = ["gpu-screen-recorder", "-f", "60", "-o", str(out)]
+    if "-r" in o:
+        need("slurp")
+        region = pick_region()
+        if not region:
+            return
+        cmd += ["-w", "region", "-region", region]
+    else:
+        cmd += ["-w", focused_monitor()]
+    if "-s" in o:
+        cmd += ["-a", "default_output"]
+    spawn(cmd)
+    notify("Recording started", str(out))
+
+
+def cmd_clipboard(args):
+    need("cliphist", "fuzzel", "wl-copy")
+    o = parse(args, set(), {"-d"})
+    listing = run(["cliphist", "list"])
+    if not listing or not listing.stdout:
+        return
+    pick = run(["fuzzel", "--dmenu"], input=listing.stdout)
+    if not pick or pick.returncode != 0 or not pick.stdout.strip():
+        return
+    if "-d" in o:
+        run(["cliphist", "delete"], input=pick.stdout)
+        return
+    dec = subprocess.run(["cliphist", "decode"], input=pick.stdout, capture_output=True, text=False)
+    if dec.returncode == 0:
+        subprocess.run(["wl-copy"], input=dec.stdout)
+
+
+def cmd_emoji(args):
+    need("fuzzel", "wl-copy")
+    import unicodedata
+    ranges = [(0x1F300, 0x1FAFF), (0x2600, 0x27BF), (0x1F000, 0x1F2FF)]
+    lines = []
+    for lo, hi in ranges:
+        for cp in range(lo, hi + 1):
+            try:
+                lines.append(f"{chr(cp)}  {unicodedata.name(chr(cp)).lower()}")
+            except ValueError:
+                continue
+    pick = run(["fuzzel", "--dmenu"], input="\n".join(lines))
+    if pick and pick.returncode == 0 and pick.stdout.strip():
+        subprocess.run(["wl-copy", "--trim-newline"], input=pick.stdout.split()[0], text=True)
+
+
+COMMANDS = {
+    "shell": cmd_shell,
+    "scheme": cmd_scheme,
+    "wallpaper": cmd_wallpaper,
+    "screenshot": cmd_screenshot,
+    "record": cmd_record,
+    "clipboard": cmd_clipboard,
+    "emoji": cmd_emoji,
+}
+
+
+def main():
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:
+        sys.exit("usage: caelestia {" + "|".join(COMMANDS) + "} [args]")
+    COMMANDS[sys.argv[1]](sys.argv[2:])
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,8 @@
+[Default Applications]
+x-scheme-handler/http=@BROWSER_DESKTOP@
+x-scheme-handler/https=@BROWSER_DESKTOP@
+x-scheme-handler/about=@BROWSER_DESKTOP@
+x-scheme-handler/unknown=@BROWSER_DESKTOP@
+text/html=@BROWSER_DESKTOP@
+application/xhtml+xml=@BROWSER_DESKTOP@
+inode/directory=thunar.desktop

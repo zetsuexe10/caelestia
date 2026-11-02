@@ -1,0 +1,18 @@
+CAELESTIA_HOME="${CAELESTIA_HOME:-$HOME/.caelestia}"
+export CAELESTIA_HOME
+export XDG_CONFIG_HOME="$CAELESTIA_HOME/config"
+export XDG_STATE_HOME="$CAELESTIA_HOME/state"
+export XDG_CACHE_HOME="$CAELESTIA_HOME/cache"
+export CAELESTIA_LIB_DIR="$CAELESTIA_HOME/local/lib/caelestia"
+export QML_IMPORT_PATH="$CAELESTIA_HOME/local/lib/qt6/qml${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}"
+export QML2_IMPORT_PATH="$QML_IMPORT_PATH"
+export GSETTINGS_BACKEND=keyfile
+export XCURSOR_THEME=Adwaita
+export XCURSOR_SIZE=24
+export XDG_CURRENT_DESKTOP=Hyprland
+export XDG_SESSION_TYPE=wayland
+export XDG_SESSION_DESKTOP=Hyprland
+case ":$PATH:" in
+    *":$CAELESTIA_HOME/bin:"*) ;;
+    *) export PATH="$CAELESTIA_HOME/bin:$PATH" ;;
+esac
