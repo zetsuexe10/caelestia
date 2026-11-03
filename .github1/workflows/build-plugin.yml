@@ -1,0 +1,81 @@
+name: build-plugin
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "shell/plugin/**"
+      - "shell/extras/**"
+      - "shell/CMakeLists.txt"
+      - ".github/workflows/build-plugin.yml"
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Install toolchain
+        run: |
+          pacman -Syu --noconfirm --needed base-devel git sudo github-cli cmake ninja pkgconf \
+            qt6-base qt6-declarative qt6-shadertools qt6-multimedia qt6-svg \
+            libpipewire aubio libqalculate lm_sensors
+
+      - name: Build libcava
+        run: |
+          useradd -m builder
+          echo "builder ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/builder
+          su builder -c "git clone https://aur.archlinux.org/libcava.git /home/builder/libcava && cd /home/builder/libcava && makepkg -si --noconfirm"
+
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: |
+          cmake -S shell -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/tmp/stage \
+            -DCMAKE_INSTALL_LIBDIR=lib \
+            -DINSTALL_LIBDIR=lib/caelestia \
+            -DINSTALL_QMLDIR=lib/qt6/qml \
+            -DINSTALL_QSCONFDIR=/tmp/qsconf \
+            -DVERSION=1.0.0 \
+            -DGIT_REVISION="${GITHUB_SHA::7}" \
+            -DDISTRIBUTOR=caelestia-private
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Install and package
+        run: |
+          cmake --install build
+          mkdir -p dist
+          tar -C /tmp/stage -czf dist/caelestia-plugin.tar.gz lib
+          pkg-config --modversion Qt6Core | cut -d. -f1,2 > dist/caelestia-plugin.qt
+          sha256sum dist/caelestia-plugin.tar.gz > dist/caelestia-plugin.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: caelestia-plugin
+          path: dist/
+
+      - name: Publish rolling release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          gh release delete plugin --cleanup-tag --yes || true
+          gh release create plugin dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Prebuilt plugin (Qt $(cat dist/caelestia-plugin.qt))" \
+            --notes "Built on Arch Linux with Qt $(cat dist/caelestia-plugin.qt)" \
+            --prerelease
