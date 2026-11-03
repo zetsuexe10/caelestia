@@ -8,8 +8,10 @@ PREFIX="$ROOT/local"
 QSDIR="$CFG/quickshell/caelestia"
 SESSION_FILE="/usr/share/wayland-sessions/caelestia.desktop"
 REPO="${CAELESTIA_REPO:-}"
+DEFAULT_REPO="zenosce10/caelestia"
 ASSUME_YES=0
 FORCE_BUILD=0
+RESET_UI=0
 MODE=install
 
 red()    { printf '\033[31m%s\033[0m\n' "$*"; }
@@ -24,9 +26,10 @@ while [ $# -gt 0 ]; do
         --check) MODE=check ;;
         --uninstall) MODE=uninstall ;;
         --build) FORCE_BUILD=1 ;;
+        --reset-ui) RESET_UI=1 ;;
         --repo) shift; REPO="${1:-}" ;;
         --help|-h)
-            echo "usage: install.sh [--check] [--uninstall] [--yes] [--build] [--repo owner/name]"
+            echo "usage: install.sh [--check] [--uninstall] [--yes] [--build] [--reset-ui] [--repo owner/name]"
             exit 0
             ;;
         *) die "unknown option: $1" ;;
@@ -37,6 +40,8 @@ done
 if [ -z "$REPO" ] && command -v git >/dev/null 2>&1 && [ -d "$SRC/.git" ]; then
     REPO="$(git -C "$SRC" remote get-url origin 2>/dev/null | sed -E 's#^(git@github.com:|https://github.com/)##; s#\.git$##')"
 fi
+
+[ -n "$REPO" ] || REPO="$DEFAULT_REPO"
 
 confirm() {
     [ "$ASSUME_YES" -eq 1 ] && return 0
@@ -51,19 +56,19 @@ RUNTIME_PKGS=(
     qt6-m3shapes-git libcava
     libpipewire aubio libqalculate lm_sensors ddcutil brightnessctl
     networkmanager bluez bluez-utils pipewire pipewire-pulse wireplumber pwvucontrol
-    power-profiles-daemon upower polkit-gnome gnome-keyring
-    foot thunar gvfs btop swappy fuzzel hyprpicker wl-clipboard cliphist jq xdg-utils curl
+    upower polkit-gnome gnome-keyring
+    foot thunar gvfs btop swappy fuzzel hyprpicker wl-clipboard cliphist xdg-utils curl
     python python-pillow grim slurp gpu-screen-recorder libnotify
     ttf-material-symbols-variable ttf-rubik-vf ttf-cascadia-code-nerd ttf-jetbrains-mono-nerd
     noto-fonts noto-fonts-emoji
-    adw-gtk-theme papirus-icon-theme adwaita-icon-theme
+    adw-gtk-theme adwaita-icon-theme
 )
 BUILD_PKGS=(base-devel git cmake ninja pkgconf qt6-shadertools)
 
 CMDS=(
     Hyprland quickshell qs foot thunar btop swappy fuzzel hyprpicker grim slurp
-    wl-copy wl-paste cliphist jq nmcli bluetoothctl wpctl brightnessctl powerprofilesctl
-    upower qalc xdg-open python3 notify-send gpu-screen-recorder curl
+    wl-copy wl-paste cliphist nmcli wpctl brightnessctl
+    qalc xdg-open python3 notify-send gpu-screen-recorder curl
 )
 
 FONT_LABELS=("Material Symbols Rounded" "Rubik" "CaskaydiaCove Nerd Font" "JetBrainsMono Nerd Font")
@@ -199,7 +204,6 @@ ensure_packages() {
         return 0
     fi
 
-    sudo pacman -Sy >/dev/null 2>&1 || true
     for p in "${missing[@]}"; do
         if pacman -Si "$p" >/dev/null 2>&1; then repo+=("$p"); else aur+=("$p"); fi
     done
@@ -251,6 +255,13 @@ install_files() {
 
     mkdir -p "$CFG/caelestia" "$CFG/foot" "$CFG/Thunar" "$CFG/gtk-3.0" "$CFG/gtk-4.0" "$CFG/glib-2.0/settings" "$CFG/fontconfig"
 
+    local f
+    for f in shell.json shell-tokens.json; do
+        if [ "$RESET_UI" -eq 1 ] || [ ! -f "$CFG/caelestia/$f" ]; then
+            cp "$SRC/config/caelestia/$f" "$CFG/caelestia/$f"
+        fi
+    done
+
     [ -f "$CFG/caelestia/hypr-user.lua" ] || cp "$SRC/config/caelestia/hypr-user.lua" "$CFG/caelestia/hypr-user.lua"
     [ -f "$CFG/caelestia/hypr-vars.lua" ] || cp "$SRC/config/caelestia/hypr-vars.lua" "$CFG/caelestia/hypr-vars.lua"
     sed "s|@ROOT@|$ROOT|g" "$SRC/config/foot/foot.ini" > "$CFG/foot/foot.ini"
@@ -261,6 +272,23 @@ install_files() {
     cp "$SRC/config/gtk-4.0/settings.ini" "$CFG/gtk-4.0/settings.ini"
     cp "$SRC/config/glib-2.0/settings/keyfile" "$CFG/glib-2.0/settings/keyfile"
     cp "$SRC/config/brave-flags.conf" "$CFG/brave-flags.conf"
+
+    local theme_dir="/usr/share/themes/adw-gtk3-dark/gtk-4.0" item
+    if [ -d "$theme_dir" ]; then
+        for item in assets gtk.css gtk-dark.css; do
+            [ -e "$theme_dir/$item" ] && ln -sfn "$theme_dir/$item" "$CFG/gtk-4.0/$item"
+        done
+    fi
+
+    : > "$CFG/gtk-3.0/bookmarks"
+    for item in Documents Downloads Music Pictures Videos; do
+        [ -d "$HOME/$item" ] && printf 'file://%s/%s\n' "$HOME" "$item" >> "$CFG/gtk-3.0/bookmarks"
+    done
+
+    mkdir -p "$HOME/Pictures/Wallpapers"
+    if [ -z "$(ls -A "$HOME/Pictures/Wallpapers" 2>/dev/null)" ]; then
+        cp "$SRC/shell/assets/wallpaper.webp" "$HOME/Pictures/Wallpapers/caelestia.webp"
+    fi
     cp "$SRC/config/fontconfig/fonts.conf" "$CFG/fontconfig/fonts.conf"
 
     if [ -d "$HOME/.config/BraveSoftware" ] && [ ! -e "$CFG/BraveSoftware" ]; then
@@ -274,7 +302,7 @@ install_files() {
     for d in assets components daemons modules services utils; do
         cp -a "$SRC/shell/$d" "$QSDIR/$d"
     done
-    cp -a "$SRC/shell/shell.qml" "$QSDIR/shell.qml"
+    sed 's/settings.watchFiles: true/settings.watchFiles: false/' "$SRC/shell/shell.qml" > "$QSDIR/shell.qml"
 
     green "ok"
 }
@@ -312,11 +340,15 @@ fetch_prebuilt() {
         return 1
     fi
 
+    mkdir -p "$tmp/extract" "$PREFIX"
+    tar -xzf "$tmp/plugin.tar.gz" -C "$tmp/extract" || { rm -rf "$tmp"; return 1; }
+    if [ ! -d "$tmp/extract/lib/qt6/qml/Caelestia" ] || [ ! -f "$tmp/extract/lib/caelestia/version" ]; then
+        rm -rf "$tmp"
+        return 1
+    fi
     rm -rf "$PREFIX/lib"
-    mkdir -p "$PREFIX"
-    tar -xzf "$tmp/plugin.tar.gz" -C "$PREFIX" || { rm -rf "$tmp"; return 1; }
+    mv "$tmp/extract/lib" "$PREFIX/lib"
     rm -rf "$tmp"
-    [ -d "$PREFIX/lib/qt6/qml/Caelestia" ] && [ -f "$PREFIX/lib/caelestia/version" ]
 }
 
 build_plugin() {

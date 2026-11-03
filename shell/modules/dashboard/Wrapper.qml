@@ -34,7 +34,7 @@ Item {
     visible: offsetScale < 1
     anchors.topMargin: (-implicitHeight - 5) * offsetScale
     implicitHeight: content.implicitHeight
-    implicitWidth: content.implicitWidth || 854 // Hard coded fallback for first open
+    implicitWidth: content.implicitWidth || Math.round(854 * Tokens.sizes.dashboard.userWidth / 340)
     opacity: 1 - offsetScale
 
     Behavior on offsetScale {

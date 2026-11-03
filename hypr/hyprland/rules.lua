@@ -1,11 +1,10 @@
 local vars = require("variables")
 
 local function tagged_rule(tag, matches, field)
-    for _, match in ipairs(matches) do
+    for _, entry in ipairs(matches) do
+        local match = entry
         if field then
-            local table = {}
-            table[field] = match
-            match = table
+            match = { [field] = entry }
         end
         hl.window_rule({ match = match, tag = "+" .. tag })
     end

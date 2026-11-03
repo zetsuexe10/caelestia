@@ -34,14 +34,14 @@ local function flatten_keybinds(keybinds, keys)
     return keys
 end
 
-local function create_bind(keybinds, action, flags, desc)
+local function create_bind(keybinds, action, flags, desc, shared)
     local get_flags = type(flags) == "function" and flags or function()
         return flags
     end
 
     local keys = flatten_keybinds(keybinds)
     for _, key in ipairs(keys) do
-        binds.bind(key, action, get_flags(key))
+        binds.bind(key, action, get_flags(key), shared)
     end
 
     if desc then
@@ -75,12 +75,14 @@ create_bind(
     end,
     "App launcher"
 )
-create_bind("SUPER + mouse_up", hl.dsp.global("caelestia:launcherInterrupt"))
-create_bind("SUPER + mouse_down", hl.dsp.global("caelestia:launcherInterrupt"))
+create_bind("SUPER + mouse_up", hl.dsp.global("caelestia:launcherInterrupt"), nil, nil, true)
+create_bind("SUPER + mouse_down", hl.dsp.global("caelestia:launcherInterrupt"), nil, nil, true)
 
 create_bind(vars.kbCheatsheet, hl.dsp.global("caelestia:cheatsheet"), nil, "Keyboard shortcuts")
 create_bind(vars.kbSettings, hl.dsp.global("caelestia:nexus"), nil, "Settings")
 create_bind(vars.kbDashboard, hl.dsp.global("caelestia:dashboard"), nil, "Dashboard")
+create_bind(vars.kbUtilities, hl.dsp.global("caelestia:utilities"), nil, "Quick settings")
+create_bind(vars.kbToggleDnd, hl.dsp.global("caelestia:toggleDnd"), nil, "Do not disturb")
 create_bind(vars.kbSession, hl.dsp.global("caelestia:session"), nil, "Session menu")
 create_bind(vars.kbShowSidebar, hl.dsp.global("caelestia:sidebar"), nil, "Notifications sidebar")
 create_bind(vars.kbClearNotifs, hl.dsp.global("caelestia:clearNotifs"), locked, "Clear notifications")
@@ -110,8 +112,8 @@ binds.add(vars.kbMoveWinToWs .. " + 1-0", "Move window to workspace")
 binds.add(vars.kbMoveWinToWsSilent .. " + 1-0", "Move window to workspace silently")
 binds.add(vars.kbGoToWsGroup .. " + 1-0", "Go to workspace group")
 
-create_bind(vars.kbPrevWs, hl.dsp.focus({ workspace = "-1" }), repeating_unless_mouse, "Previous workspace")
-create_bind(vars.kbNextWs, hl.dsp.focus({ workspace = "+1" }), repeating_unless_mouse, "Next workspace")
+create_bind(vars.kbPrevWs, hl.dsp.focus({ workspace = "-1" }), repeating_unless_mouse, "Previous workspace", true)
+create_bind(vars.kbNextWs, hl.dsp.focus({ workspace = "+1" }), repeating_unless_mouse, "Next workspace", true)
 create_bind(vars.kbPrevWsGroup, hl.dsp.focus({ workspace = "-10" }), repeating_unless_mouse, "Previous workspace group")
 create_bind(vars.kbNextWsGroup, hl.dsp.focus({ workspace = "+10" }), repeating_unless_mouse, "Next workspace group")
 create_bind(vars.kbMoveWinToWsNext, hl.dsp.window.move({ workspace = "+1" }), repeating_unless_mouse, "Move window to next workspace")
@@ -170,6 +172,8 @@ binds.section("Capture")
 create_bind(vars.kbScreenshot, hl.dsp.exec_cmd("caelestia screenshot"), locked, "Screenshot to clipboard")
 create_bind(vars.kbScreenshotFreeze, hl.dsp.global("caelestia:screenshotFreeze"), nil, "Region screenshot (frozen)")
 create_bind(vars.kbScreenshotRegion, hl.dsp.global("caelestia:screenshot"), nil, "Region screenshot")
+create_bind(vars.kbScreenshotClip, hl.dsp.global("caelestia:screenshotClip"), nil, "Region screenshot to clipboard")
+create_bind(vars.kbScreenshotFreezeClip, hl.dsp.global("caelestia:screenshotFreezeClip"), nil, "Frozen region screenshot to clipboard")
 create_bind(vars.kbRecord, hl.dsp.exec_cmd("caelestia record"), nil, "Record screen")
 create_bind(vars.kbRecordSound, hl.dsp.exec_cmd("caelestia record -s"), nil, "Record screen with audio")
 create_bind(vars.kbRecordRegion, hl.dsp.exec_cmd("caelestia record -r"), nil, "Record region")

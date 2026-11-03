@@ -2,10 +2,12 @@ local json = require("utils.json")
 
 local M = {}
 
-local groups  = {}
-local order   = {}
-local current = "General"
-local busy    = false
+local groups    = {}
+local order     = {}
+local current   = "General"
+local busy      = false
+local used      = {}
+local conflicts = {}
 
 local aliases = {
     ["mouse:272"] = "Left click",
@@ -64,7 +66,24 @@ function M.add(keys, desc, group)
     table.insert(groups[group], { keys = shown, desc = desc })
 end
 
-function M.bind(keys, action, flags)
+local function identity(keys, flags)
+    local parts = {}
+    for part in keys:gmatch("[^+]+") do
+        parts[#parts + 1] = trim(part):lower()
+    end
+    local key = table.remove(parts)
+    table.sort(parts)
+    local suffix = flags and flags.release and "|release" or ""
+    return table.concat(parts, "+") .. "+" .. key .. suffix
+end
+
+function M.bind(keys, action, flags, shared)
+    local id = identity(keys, flags)
+    if used[id] and not shared then
+        conflicts[#conflicts + 1] = pretty(keys) .. " is bound more than once"
+    end
+    used[id] = true
+
     busy = true
     local ok, err = pcall(hl.bind, keys, action, flags)
     busy = false
@@ -83,6 +102,10 @@ function M.hook()
     end)
 end
 
+function M.conflicts()
+    return conflicts
+end
+
 function M.write(path)
     local dir = path:match("^(.*)/[^/]+$")
     if dir then pcall(os.execute, 'mkdir -p "' .. dir .. '"') end
@@ -94,7 +117,7 @@ function M.write(path)
 
     local f = io.open(path, "w")
     if not f then return false end
-    f:write(json.encode({ groups = out }))
+    f:write(json.encode({ groups = out, conflicts = conflicts }))
     f:close()
     return true
 end

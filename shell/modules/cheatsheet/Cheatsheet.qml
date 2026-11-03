@@ -118,6 +118,15 @@ Scope {
                             }
 
                             StyledText {
+                                Layout.fillWidth: true
+                                visible: Keybinds.conflicts.length > 0
+                                text: Tr.tr("Conflicting shortcuts") + ": " + Keybinds.conflicts.join(", ")
+                                color: Colours.palette.m3error
+                                font: Tokens.font.label.medium
+                                wrapMode: Text.WordWrap
+                            }
+
+                            StyledText {
                                 Layout.alignment: Qt.AlignHCenter
                                 visible: Keybinds.filter(search.text).length === 0
                                 text: Keybinds.loaded ? Tr.tr("No matching shortcuts") : Tr.tr("No shortcut data yet. Reload the Hyprland config.")

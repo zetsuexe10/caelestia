@@ -138,9 +138,6 @@ class DashboardTokens : public settings::ObjectNode {
     CONFIG_PROPERTY(int, perfStorageTextWidth, 160)
     CONFIG_PROPERTY(int, perfNetworkCardWidth, 390)
     CONFIG_PROPERTY(int, perfNetworkCardHeight, 220)
-    CONFIG_PROPERTY(int, perfBattWidth, 150)
-    CONFIG_PROPERTY(int, perfBattWidthSingle, 400)
-    CONFIG_PROPERTY(int, perfBattHeight, 160)
     CONFIG_PROPERTY(int, perfPlaceholderWidth, 700)
 };
 

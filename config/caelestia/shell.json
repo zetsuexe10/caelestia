@@ -1,0 +1,16 @@
+{
+    "appearance": {
+        "font": {
+            "scale": 0.92
+        },
+        "padding": {
+            "scale": 0.85
+        },
+        "spacing": {
+            "scale": 0.85
+        },
+        "rounding": {
+            "scale": 0.9
+        }
+    }
+}

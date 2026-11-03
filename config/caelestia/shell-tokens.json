@@ -1,0 +1,63 @@
+{
+    "sizes": {
+        "bar": {
+            "innerWidth": 34,
+            "windowPreviewSize": 340,
+            "trayMenuWidth": 260,
+            "networkWidth": 280,
+            "audioWidth": 280,
+            "kbLayoutWidth": 280
+        },
+        "dashboard": {
+            "tabIndicatorSpacing": 4,
+            "userWidth": 255,
+            "logoSize": 24,
+            "uptimeSize": 24,
+            "dateTimeWidth": 88,
+            "mediaWidth": 150,
+            "mediaProgressThickness": 4,
+            "resourceProgressThickness": 4,
+            "weatherWidth": 205,
+            "mediaCoverArtSize": 150,
+            "mediaTabWidth": 740,
+            "mediaTabHeight": 240,
+            "mediaSectionWidth": 225,
+            "perfHeroCardWidth": 295,
+            "perfUsageShapeSize": 76,
+            "perfStorageTextWidth": 120,
+            "perfNetworkCardWidth": 290,
+            "perfNetworkCardHeight": 165,
+            "perfPlaceholderWidth": 520
+        },
+        "launcher": {
+            "itemWidth": 500,
+            "itemHeight": 48,
+            "wallpaperWidth": 235,
+            "wallpaperHeight": 168
+        },
+        "notifs": {
+            "width": 370,
+            "badge": 18
+        },
+        "osd": {
+            "sliderWidth": 26,
+            "sliderHeight": 130
+        },
+        "session": {
+            "button": 68
+        },
+        "sidebar": {
+            "width": 370
+        },
+        "utilities": {
+            "width": 370,
+            "toastWidth": 370
+        },
+        "nexus": {
+            "heightMult": 0.62,
+            "minWidth": 720,
+            "minHeight": 460,
+            "maxContentWidth": 720
+        }
+    }
+}

@@ -7,8 +7,16 @@ export CAELESTIA_LIB_DIR="$CAELESTIA_HOME/local/lib/caelestia"
 export QML_IMPORT_PATH="$CAELESTIA_HOME/local/lib/qt6/qml${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}"
 export QML2_IMPORT_PATH="$QML_IMPORT_PATH"
 export GSETTINGS_BACKEND=keyfile
-export XCURSOR_THEME=Adwaita
-export XCURSOR_SIZE=24
+gtk_ini="$XDG_CONFIG_HOME/gtk-3.0/settings.ini"
+cursor_theme=""
+cursor_size=""
+if [ -r "$gtk_ini" ]; then
+    cursor_theme="$(sed -n 's/^gtk-cursor-theme-name=//p' "$gtk_ini" | head -n 1)"
+    cursor_size="$(sed -n 's/^gtk-cursor-theme-size=//p' "$gtk_ini" | head -n 1)"
+fi
+export XCURSOR_THEME="${cursor_theme:-Adwaita}"
+export XCURSOR_SIZE="${cursor_size:-24}"
+unset gtk_ini cursor_theme cursor_size
 export XDG_CURRENT_DESKTOP=Hyprland
 export XDG_SESSION_TYPE=wayland
 export XDG_SESSION_DESKTOP=Hyprland

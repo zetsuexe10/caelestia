@@ -9,6 +9,7 @@ Singleton {
     id: root
 
     property var groups: []
+    property var conflicts: []
     readonly property bool loaded: groups.length > 0
 
     function filter(query: string): var {
@@ -29,11 +30,17 @@ Singleton {
         onFileChanged: reload()
         onLoaded: {
             try {
-                root.groups = JSON.parse(text()).groups ?? [];
+                const data = JSON.parse(text());
+                root.groups = data.groups ?? [];
+                root.conflicts = data.conflicts ?? [];
             } catch (e) {
                 root.groups = [];
+                root.conflicts = [];
             }
         }
-        onLoadFailed: root.groups = []
+        onLoadFailed: {
+            root.groups = [];
+            root.conflicts = [];
+        }
     }
 }

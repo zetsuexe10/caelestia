@@ -98,3 +98,7 @@ if maybe_create(user .. "/hypr-user.lua") then
 end
 
 pcall(binds.write, state .. "/keybinds.json")
+
+for _, message in ipairs(binds.conflicts()) do
+    report("keybinds", message)
+end
