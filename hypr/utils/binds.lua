@@ -35,8 +35,8 @@ local function pretty(keys)
 
     local parts = {}
     for part in keys:gmatch("[^+]+") do
-        part = trim(part)
-        parts[#parts + 1] = aliases[part] or part
+        local name = trim(part)
+        parts[#parts + 1] = aliases[name] or name
     end
     return table.concat(parts, " + ")
 end
