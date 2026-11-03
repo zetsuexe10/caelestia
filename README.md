@@ -28,7 +28,7 @@ Packages are installed for you. Repo packages use `pacman`, AUR packages use `pa
 ## Install
 
 ```sh
-git clone https://github.com/zenosce10/caelestia
+git clone https://github.com/zetsuexe10/caelestia
 cd caelestia
 ./install.sh
 ```
