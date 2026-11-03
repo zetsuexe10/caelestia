@@ -49,7 +49,9 @@ Item {
             }
 
             Behavior on shift {
-                Anim {}
+                Anim {
+                    type: Anim.Emphasized
+                }
             }
         }
     }

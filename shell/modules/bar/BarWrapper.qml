@@ -55,6 +55,7 @@ Item {
             to: "visible"
 
             Anim {
+                type: Anim.Emphasized
                 target: root
                 property: "implicitWidth"
             }

@@ -100,7 +100,9 @@ Item {
     }
 
     Behavior on implicitHeight {
-        Anim {}
+        Anim {
+            type: Anim.Emphasized
+        }
     }
 
     component Title: StyledText {

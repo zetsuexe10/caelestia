@@ -16,13 +16,6 @@ QtObject {
         },
 
         // Connectivity
-        // TODO
-        // {
-        //     label: Tr.tr("Display"),
-        //     icon: "monitor",
-        //     description: Tr.tr("Output configuration"),
-        //     category: "connectivity"
-        // },
         {
             label: Tr.tr("Network"),
             icon: "wifi",
@@ -43,20 +36,6 @@ QtObject {
             category: "connectivity"
         },
 
-        // System
-        {
-            label: Tr.tr("Updates"),
-            icon: "update",
-            description: Tr.tr("System updates"),
-            category: "system"
-        },
-        {
-            label: Tr.tr("Plugins"),
-            icon: "extension",
-            description: Tr.tr("Manage plugins"),
-            category: "system"
-        },
-
         // Shell
         {
             label: Tr.tr("Panels"),
@@ -68,6 +47,12 @@ QtObject {
             label: Tr.tr("Apps"),
             icon: "apps",
             description: Tr.tr("Default apps, favourites, hidden apps"),
+            category: "shell"
+        },
+        {
+            label: Tr.tr("Keyboard shortcuts"),
+            icon: "keyboard",
+            description: Tr.tr("All keybindings, searchable"),
             category: "shell"
         },
         {

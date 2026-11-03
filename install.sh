@@ -66,11 +66,12 @@ CMDS=(
     upower qalc xdg-open python3 notify-send gpu-screen-recorder curl
 )
 
-FONTS=(
-    "Material Symbols|Material Symbols"
-    "Rubik|Rubik"
-    "Cascadia Nerd|CaskaydiaCove\|Cascadia"
-    "JetBrains Mono Nerd|JetBrainsMono\|JetBrains Mono"
+FONT_LABELS=("Material Symbols Rounded" "Rubik" "CaskaydiaCove Nerd Font" "JetBrainsMono Nerd Font")
+FONT_ALTERNATIVES=(
+    "Material Symbols Rounded"
+    "Rubik"
+    "CaskaydiaCove NF|CaskaydiaCove Nerd Font"
+    "JetBrainsMono Nerd Font|JetBrainsMono NF"
 )
 
 browser_cmd() {
@@ -103,11 +104,11 @@ has_cava() {
 }
 
 quickshell_version() {
-    quickshell --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1
+    quickshell --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 || true
 }
 
 run_check() {
-    local fail=0 c p f label pattern qv
+    local fail=0 c p i alt alts found fonts qv
 
     step "Commands"
     for c in "${CMDS[@]}"; do
@@ -127,10 +128,14 @@ run_check() {
 
     step "Libraries and fonts"
     if python3 -c 'import PIL' >/dev/null 2>&1; then green "  ok       python Pillow"; else red "  missing  python Pillow"; fail=1; fi
-    for f in "${FONTS[@]}"; do
-        label="${f%%|*}"
-        pattern="${f#*|}"
-        if fc-list 2>/dev/null | grep -qi "$pattern"; then green "  ok       font $label"; else red "  missing  font $label"; fail=1; fi
+    fonts="$(fc-list : family 2>/dev/null)"
+    for i in "${!FONT_LABELS[@]}"; do
+        found=0
+        IFS='|' read -r -a alts <<< "${FONT_ALTERNATIVES[$i]}"
+        for alt in "${alts[@]}"; do
+            if grep -Fqi -- "$alt" <<< "$fonts"; then found=1; break; fi
+        done
+        if [ "$found" -eq 1 ]; then green "  ok       font ${FONT_LABELS[$i]}"; else red "  missing  font ${FONT_LABELS[$i]}"; fail=1; fi
     done
     if [ -x /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 ]; then
         green "  ok       polkit-gnome agent"
@@ -156,6 +161,7 @@ run_check() {
         "$PREFIX/lib/qt6/qml/Caelestia" \
         "$PREFIX/lib/caelestia/version" \
         "$ROOT/bin/caelestia" \
+        "$ROOT/bin/caelestia-open" \
         "$ROOT/bin/caelestia-session"; do
         if [ -e "$f" ]; then green "  ok       $f"; else red "  missing  $f"; fail=1; fi
     done
@@ -234,19 +240,19 @@ install_files() {
     install -m 755 "$SRC/bin/caelestia" "$ROOT/bin/caelestia"
     install -m 755 "$SRC/bin/caelestia-session" "$ROOT/bin/caelestia-session"
     install -m 755 "$SRC/bin/caelestia-shell-wrap" "$ROOT/bin/caelestia-shell-wrap"
+    install -m 755 "$SRC/bin/caelestia-open" "$ROOT/bin/caelestia-open"
     install -m 644 "$SRC/bin/caelestia-env" "$ROOT/bin/caelestia-env"
 
     mkdir -p "$CFG/hypr"
     cp -a "$SRC/hypr/." "$CFG/hypr/"
 
-    local bcmd bdesk
-    bcmd="$(browser_cmd || echo brave)"
+    local bdesk
     bdesk="$(browser_desktop)"
 
-    mkdir -p "$CFG/caelestia" "$CFG/foot" "$CFG/Thunar" "$CFG/gtk-3.0" "$CFG/gtk-4.0" "$CFG/glib-2.0/settings"
+    mkdir -p "$CFG/caelestia" "$CFG/foot" "$CFG/Thunar" "$CFG/gtk-3.0" "$CFG/gtk-4.0" "$CFG/glib-2.0/settings" "$CFG/fontconfig"
 
     [ -f "$CFG/caelestia/hypr-user.lua" ] || cp "$SRC/config/caelestia/hypr-user.lua" "$CFG/caelestia/hypr-user.lua"
-    sed "s|@BROWSER@|$bcmd|g" "$SRC/config/caelestia/hypr-vars.lua" > "$CFG/caelestia/hypr-vars.lua"
+    [ -f "$CFG/caelestia/hypr-vars.lua" ] || cp "$SRC/config/caelestia/hypr-vars.lua" "$CFG/caelestia/hypr-vars.lua"
     sed "s|@ROOT@|$ROOT|g" "$SRC/config/foot/foot.ini" > "$CFG/foot/foot.ini"
     sed "s|@BROWSER_DESKTOP@|$bdesk|g" "$SRC/config/mimeapps.list" > "$CFG/mimeapps.list"
 
@@ -255,6 +261,7 @@ install_files() {
     cp "$SRC/config/gtk-4.0/settings.ini" "$CFG/gtk-4.0/settings.ini"
     cp "$SRC/config/glib-2.0/settings/keyfile" "$CFG/glib-2.0/settings/keyfile"
     cp "$SRC/config/brave-flags.conf" "$CFG/brave-flags.conf"
+    cp "$SRC/config/fontconfig/fonts.conf" "$CFG/fontconfig/fonts.conf"
 
     if [ -d "$HOME/.config/BraveSoftware" ] && [ ! -e "$CFG/BraveSoftware" ]; then
         ln -s "$HOME/.config/BraveSoftware" "$CFG/BraveSoftware"
@@ -315,7 +322,7 @@ fetch_prebuilt() {
 build_plugin() {
     step "Building plugin locally"
     ensure_packages "${BUILD_PKGS[@]}"
-    qt_full | grep -q . || die "Qt6 not found"
+    [ -n "$(qt_full)" ] || die "Qt6 not found"
     version_ge "$(qt_full)" "6.9" || die "Qt 6.9 or newer is required"
     has_cava || die "libcava not found"
 

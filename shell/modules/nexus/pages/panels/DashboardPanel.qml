@@ -84,12 +84,6 @@ PageBase {
 
         ToggleRow {
             first: true
-            text: Tr.tr("Battery")
-            checked: Config.dashboard.performance.showBattery
-            onToggled: GlobalConfig.dashboard.performance.showBattery = checked
-        }
-
-        ToggleRow {
             text: Tr.tr("GPU")
             checked: Config.dashboard.performance.showGpu
             onToggled: GlobalConfig.dashboard.performance.showGpu = checked

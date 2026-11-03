@@ -103,6 +103,13 @@ local function default_config()
                 command = { "foot", "-a", "btop", "-T", "btop", "btop" },
             },
         },
+        scratch = {
+            term = {
+                enable  = true,
+                match   = { { class = "scratchterm", title = "scratchterm", workspace = { name = "special:scratch" } } },
+                command = { "foot", "-a", "scratchterm", "-T", "scratchterm" },
+            },
+        },
     }
 end
 

@@ -57,7 +57,9 @@ ColumnLayout {
             }
 
             Behavior on scale {
-                Anim {}
+                Anim {
+                    type: Anim.EmphasizedSmall
+                }
             }
         }
     }
@@ -86,7 +88,9 @@ ColumnLayout {
             }
 
             Behavior on scale {
-                Anim {}
+                Anim {
+                    type: Anim.EmphasizedSmall
+                }
             }
         }
     }

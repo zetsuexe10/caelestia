@@ -2,7 +2,7 @@ local scheme = require("scheme.current")
 
 return {
     terminal                   = "foot",
-    browser                    = "brave",
+    browser                    = "caelestia-open browser",
     fileExplorer               = "thunar",
     audioSettings              = "pwvucontrol",
 
@@ -84,7 +84,8 @@ return {
     kbSpecialWs                = "SUPER + S",
     kbSystemMonitorWs          = "CTRL + SHIFT + Escape",
 
-    kbTerminal                 = "SUPER + T",
+    kbTerminal                 = { "SUPER + Return", "SUPER + T" },
+    kbScratchTerminal          = "SUPER + grave",
     kbBrowser                  = "SUPER + W",
     kbFileExplorer             = "SUPER + E",
     kbAudioSettings            = "CTRL + ALT + V",
@@ -105,6 +106,9 @@ return {
 
     kbLauncher                 = "SUPER + SUPER_L",
     kbSession                  = "CTRL + ALT + Delete",
+    kbCheatsheet               = { "SUPER + F1", "SUPER + Slash" },
+    kbSettings                 = "SUPER + I",
+    kbDashboard                = "SUPER + D",
     kbShowSidebar              = "SUPER + N",
     kbClearNotifs              = "CTRL + ALT + C",
     kbShowPanels               = "SUPER + K",

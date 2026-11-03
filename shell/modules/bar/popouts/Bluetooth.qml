@@ -91,7 +91,9 @@ ColumnLayout {
             }
 
             Behavior on scale {
-                Anim {}
+                Anim {
+                    type: Anim.EmphasizedSmall
+                }
             }
 
             MaterialIcon {

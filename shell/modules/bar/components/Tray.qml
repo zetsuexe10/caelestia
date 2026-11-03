@@ -63,6 +63,7 @@ StyledRect {
                 easing: Tokens.anim.standardDecel
             }
             Anim {
+                type: Anim.Emphasized
                 properties: "x,y"
             }
         }
@@ -110,17 +111,23 @@ StyledRect {
                 rotation: root.expanded ? 180 : 0
 
                 Behavior on rotation {
-                    Anim {}
+                    Anim {
+                        type: Anim.EmphasizedSmall
+                    }
                 }
 
                 Behavior on anchors.bottomMargin {
-                    Anim {}
+                    Anim {
+                        type: Anim.Emphasized
+                    }
                 }
             }
         }
     }
 
     Behavior on implicitHeight {
-        Anim {}
+        Anim {
+            type: Anim.Emphasized
+        }
     }
 }

@@ -8,7 +8,6 @@ namespace caelestia::shell::config {
 class DashboardPerformance : public settings::ObjectNode {
     CONFIG_NODE(DashboardPerformance, settings::ObjectNode)
 
-    CONFIG_PROPERTY(bool, showBattery, true)
     CONFIG_PROPERTY(bool, showGpu, true)
     CONFIG_PROPERTY(bool, showCpu, true)
     CONFIG_PROPERTY(bool, showMemory, true)

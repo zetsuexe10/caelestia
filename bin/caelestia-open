@@ -1,0 +1,31 @@
+#!/bin/sh
+kind="$1"
+shift
+
+first() {
+    for c in "$@"; do
+        if command -v "$c" >/dev/null 2>&1; then
+            echo "$c"
+            return 0
+        fi
+    done
+    return 1
+}
+
+case "$kind" in
+    browser)
+        cmd="$(first brave brave-browser brave-bin)" || exec xdg-open "https://"
+        ;;
+    terminal)
+        cmd="$(first foot)" || exit 1
+        ;;
+    files)
+        cmd="$(first thunar)" || exit 1
+        ;;
+    *)
+        echo "usage: caelestia-open {browser|terminal|files} [args]" >&2
+        exit 2
+        ;;
+esac
+
+exec "$cmd" "$@"

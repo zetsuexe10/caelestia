@@ -144,7 +144,9 @@ ColumnLayout {
         }
 
         Behavior on scale {
-            Anim {}
+            Anim {
+                type: Anim.EmphasizedSmall
+            }
         }
 
         ParallelAnimation {
@@ -162,6 +164,7 @@ ColumnLayout {
                 to: 0
             }
             Anim {
+                type: Anim.Emphasized
                 target: parent
                 property: "scale"
                 to: 0.7
@@ -438,6 +441,7 @@ ColumnLayout {
                                     to: 0
                                 }
                                 Anim {
+                                    type: Anim.Emphasized
                                     target: ch
                                     property: "scale"
                                     to: 0.5
@@ -458,13 +462,15 @@ ColumnLayout {
 
                         Behavior on scale {
                             Anim {
-                                type: Anim.FastSpatial
+                                type: Anim.EmphasizedSmall
                             }
                         }
                     }
 
                     Behavior on implicitWidth {
-                        Anim {}
+                        Anim {
+                            type: Anim.Emphasized
+                        }
                     }
                 }
             }

@@ -93,14 +93,6 @@ QtObject {
             }
         },
 
-        // System
-        Component {
-            PlaceholderComp {}
-        },
-        Component {
-            PlaceholderComp {}
-        },
-
         // Shell
         Component {
             // Panels
@@ -153,6 +145,14 @@ QtObject {
                 }
                 Component {
                     AppInfo {}
+                }
+            }
+        },
+        Component {
+            // Keyboard shortcuts
+            StackPage {
+                Component {
+                    KeybindsPage {}
                 }
             }
         },

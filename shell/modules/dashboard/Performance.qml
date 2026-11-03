@@ -1,7 +1,6 @@
 import "performance"
 import QtQuick
 import QtQuick.Layouts
-import Quickshell.Services.UPower
 import Caelestia.Config
 import Caelestia.I18n
 import Caelestia.Services
@@ -18,7 +17,7 @@ Item {
         id: placeholder
 
         anchors.centerIn: parent
-        active: !Config.dashboard.performance.showCpu && !(Config.dashboard.performance.showGpu && Gpu.type !== GpuType.None) && !Config.dashboard.performance.showMemory && !Config.dashboard.performance.showStorage && !Config.dashboard.performance.showNetwork && !(UPower.displayDevice.isLaptopBattery && Config.dashboard.performance.showBattery)
+        active: !Config.dashboard.performance.showCpu && !(Config.dashboard.performance.showGpu && Gpu.type !== GpuType.None) && !Config.dashboard.performance.showMemory && !Config.dashboard.performance.showStorage && !Config.dashboard.performance.showNetwork
         asynchronous: true
 
         sourceComponent: ColumnLayout {
@@ -130,12 +129,6 @@ Item {
                     sourceComponent: MemoryCard {}
                 }
             }
-        }
-
-        WrappedLoader {
-            Layout.fillWidth: false
-            active: UPower.displayDevice.isLaptopBattery && Config.dashboard.performance.showBattery
-            sourceComponent: BatteryTank {}
         }
     }
 

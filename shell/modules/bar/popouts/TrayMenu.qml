@@ -65,7 +65,9 @@ StackView {
         }
 
         Behavior on scale {
-            Anim {}
+            Anim {
+                type: Anim.EmphasizedSmall
+            }
         }
 
         QsMenuOpener {

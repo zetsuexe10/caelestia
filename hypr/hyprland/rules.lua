@@ -25,6 +25,7 @@ local float_60_70_tag = "float_60_70"
 local game_tag = "game"
 local xwl_popup_tag = "xwl_popup"
 local system_monitor_tag = "system_monitor"
+local scratch_term_tag = "scratch_term"
 
 hl.window_rule({ match = { fullscreen = false }, opacity = vars.windowOpacity .. " override" })
 
@@ -79,6 +80,7 @@ tagged_rule(xwl_popup_tag, {
 })
 
 tagged_rule(system_monitor_tag, { "btop" }, "class")
+tagged_rule(scratch_term_tag, { "scratchterm" }, "class")
 
 create_tag(opaque_tag, { opaque = true })
 create_tag(float_tag, { float = true })
@@ -92,6 +94,12 @@ create_tag(xwl_popup_tag, {
     rounding = math.min(10, vars.windowRounding),
 })
 create_tag(system_monitor_tag, { workspace = "special:sysmon" })
+create_tag(scratch_term_tag, {
+    workspace = "special:scratch",
+    float = true,
+    size = "(monitor_w*0.7) (monitor_h*0.6)",
+    center = true,
+})
 
 hl.workspace_rule({ workspace = "w[tv1]s[false]", gaps_out = vars.singleWindowGapsOut })
 hl.workspace_rule({ workspace = "f[1]s[false]", gaps_out = vars.singleWindowGapsOut })

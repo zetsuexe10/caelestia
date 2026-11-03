@@ -10,6 +10,7 @@ import Caelestia.Config
 import qs.services
 import qs.modules.areapicker
 import qs.modules.background
+import qs.modules.cheatsheet
 import qs.modules.drawers
 import qs.modules.lock
 import qs.daemons
@@ -44,6 +45,7 @@ ShellRoot {
     Background {}
     Drawers {}
     AreaPicker {}
+    Cheatsheet {}
     Lock {
         id: lock
     }

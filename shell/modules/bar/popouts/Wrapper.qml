@@ -35,13 +35,12 @@ Item {
     // Dummy object so Tokens attached prop resolves to global config
     // Anim configs are not per-monitor
     readonly property QtObject dummy: QtObject {}
-    property int animLength: dummy.Tokens.anim.durations.expressiveDefaultSpatial
-    property var animCurve: dummy.Tokens.anim.expressiveDefaultSpatial // The easingCurve type is Qt 6.11+ so we gotta use var for now
+    property int animLength: dummy.Tokens.anim.durations.normal
+    property var animCurve: dummy.Tokens.anim.emphasized
 
     function setAnims(detach: bool): void {
-        const type = `expressive${detach ? "Slow" : "Default"}Spatial`;
-        animLength = dummy.Tokens.anim.durations[type];
-        animCurve = dummy.Tokens.anim[type];
+        animLength = dummy.Tokens.anim.durations[detach ? "large" : "normal"];
+        animCurve = dummy.Tokens.anim.emphasized;
     }
 
     function detach(mode: string): void {

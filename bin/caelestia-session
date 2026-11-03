@@ -1,16 +1,17 @@
 #!/bin/sh
 . "${CAELESTIA_HOME:-$HOME/.caelestia}/bin/caelestia-env"
 
-mkdir -p "$XDG_CONFIG_HOME" "$XDG_STATE_HOME" "$XDG_CACHE_HOME"
+mkdir -p "$XDG_CONFIG_HOME" "$XDG_STATE_HOME/caelestia" "$XDG_CACHE_HOME"
 
 if [ ! -f "$XDG_STATE_HOME/caelestia/scheme.json" ]; then
     caelestia scheme set -n caelestia >/dev/null 2>&1 || true
 fi
 
 config="$XDG_CONFIG_HOME/hypr/hyprland.lua"
+log="$XDG_STATE_HOME/caelestia/session.log"
 
 if command -v start-hyprland >/dev/null 2>&1; then
-    exec start-hyprland -- --config "$config"
+    exec start-hyprland -- --config "$config" >>"$log" 2>&1
 fi
 
-exec Hyprland --config "$config"
+exec Hyprland --config "$config" >>"$log" 2>&1

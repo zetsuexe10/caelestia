@@ -69,13 +69,17 @@ Item {
     Component.onCompleted: updateShape()
 
     Behavior on LazyListView.visibleHeight {
-        Anim {}
+        Anim {
+            type: Anim.Emphasized
+        }
     }
 
     Behavior on y {
         enabled: root.LazyListView.ready
 
-        Anim {}
+        Anim {
+            type: Anim.Emphasized
+        }
     }
 
     Behavior on opacity {
@@ -101,7 +105,9 @@ Item {
             }
 
             Behavior on scale {
-                Anim {}
+                Anim {
+                    type: Anim.EmphasizedSmall
+                }
             }
         }
     }
@@ -240,7 +246,9 @@ Item {
                     }
 
                     Behavior on y {
-                        Anim {}
+                        Anim {
+                            type: Anim.Emphasized
+                        }
                     }
                 }
             }

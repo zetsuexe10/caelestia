@@ -33,7 +33,9 @@ Item {
     }
 
     Behavior on offsetScale {
-        Anim {}
+        Anim {
+            type: Anim.Emphasized
+        }
     }
 
     Behavior on x {

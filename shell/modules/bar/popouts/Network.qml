@@ -89,7 +89,9 @@ ColumnLayout {
             }
 
             Behavior on scale {
-                Anim {}
+                Anim {
+                    type: Anim.EmphasizedSmall
+                }
             }
 
             MaterialIcon {
@@ -278,7 +280,9 @@ ColumnLayout {
             }
 
             Behavior on scale {
-                Anim {}
+                Anim {
+                    type: Anim.EmphasizedSmall
+                }
             }
 
             MaterialIcon {

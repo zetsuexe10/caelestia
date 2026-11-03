@@ -183,7 +183,9 @@ ClipRect {
         }
 
         Behavior on scale {
-            Anim {}
+            Anim {
+                type: Anim.EmphasizedSmall
+            }
         }
 
         Behavior on opacity {
@@ -218,7 +220,9 @@ ClipRect {
                 Component.onCompleted: scale = Qt.binding(() => root.onSpecial ? 1 : 0.5)
 
                 Behavior on scale {
-                    Anim {}
+                    Anim {
+                        type: Anim.EmphasizedSmall
+                    }
                 }
             }
         }
@@ -237,6 +241,8 @@ ClipRect {
     }
 
     Behavior on implicitHeight {
-        Anim {}
+        Anim {
+            type: Anim.Emphasized
+        }
     }
 }
