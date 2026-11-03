@@ -1,11 +1,16 @@
-# Caelestia
+# Caelestia (custom fork)
 
-Hyprland (Lua config) with the Caelestia Quickshell shell, isolated in `~/.caelestia`.
+A custom fork of Caelestia by **caelestia-dots**. All design, code and credit belong to the original authors:
+
+- [caelestia-dots/caelestia](https://github.com/caelestia-dots/caelestia) — the Caelestia desktop configuration
+- [caelestia-dots/shell](https://github.com/caelestia-dots/shell) — the Caelestia Quickshell shell and C++ plugin
+
+This fork keeps the same shell and desktop, adds a Lua-based Hyprland config and installs everything isolated in `~/.caelestia`.
 
 ## Install
 
 ```sh
-git clone https://github.com/OWNER/caelestia && cd caelestia
+git clone https://github.com/zetsuexe10/caelestia && cd caelestia
 ./install.sh
 ```
 
@@ -16,9 +21,9 @@ Options: `--check`, `--yes`, `--build` (force local plugin build), `--repo owner
 | Path | Purpose |
 | --- | --- |
 | `hypr/` | Hyprland Lua config |
-| `shell/` | Quickshell config and C++ plugin source |
+| `shell/` | Quickshell config and C++ plugin source (from caelestia-dots/shell) |
 | `bin/` | session launcher, env, `caelestia` helper |
-| `config/` | foot, Thunar, GTK, mime defaults |
+| `config/` | foot, Thunar, GTK, fontconfig, mime defaults |
 | `.github/workflows/build-plugin.yml` | builds the plugin and publishes the `plugin` release |
 
 ## Isolation
@@ -36,3 +41,7 @@ The session exports `XDG_CONFIG_HOME`, `XDG_STATE_HOME` and `XDG_CACHE_HOME` und
 ## Start
 
 Pick the Caelestia session in your display manager, or run `~/.caelestia/bin/caelestia-session` from a TTY.
+
+## License
+
+MIT, same as upstream. See [LICENSE](LICENSE).
