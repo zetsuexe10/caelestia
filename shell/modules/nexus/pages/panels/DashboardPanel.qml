@@ -4,10 +4,13 @@ import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
+import qs.components.controls
 import qs.modules.nexus.common
 
 PageBase {
     id: root
+
+    readonly property real dashScale: Config.dashboard.sizeScale ?? 1
 
     title: Tr.tr("Dashboard")
     isSubPage: true
@@ -39,11 +42,19 @@ PageBase {
         }
 
         ToggleRow {
-            last: true
             text: Tr.tr("Show clock seconds")
             subtext: Tr.tr("Display seconds for the clock in the main panel")
             checked: Config.dashboard.showClockSeconds
             onToggled: GlobalConfig.dashboard.showClockSeconds = checked
+        }
+
+        SliderRow {
+            last: true
+            icon: "aspect_ratio"
+            label: Tr.tr("Size")
+            valueLabel: Math.round(root.dashScale * 100) + "%"
+            value: (root.dashScale - 0.6) / 0.8
+            onMoved: v => GlobalConfig.dashboard.sizeScale = Math.round((0.6 + v * 0.8) * 20) / 20
         }
 
         // Tabs

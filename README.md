@@ -13,7 +13,7 @@ This fork combines both into one repository, uses the Lua Hyprland config, and i
 - `caelestia-cli` is replaced by a small built-in helper (`bin/caelestia`).
 - Default apps: Foot (terminal), Brave (browser), Thunar (files).
 - Keyboard cheatsheet that is generated from the live Hyprland config.
-- Compact UI: thinner bar and smaller dashboard, launcher and panels.
+- Compact UI: thinner bar and screen frame, smaller launcher and panels. The dashboard size is adjustable in Settings → Panels → Dashboard → Size (60% to 140%).
 - Removed: battery icon in the bar, battery card in the dashboard, placeholder settings pages, zen, micro, fastfetch, starship, uwsm and other unused extras.
 - The plugin is built by GitHub Actions and downloaded by the installer, so no local compile is needed in most cases.
 
@@ -101,7 +101,7 @@ return {
 }
 ```
 
-To change sizes, edit `shell-tokens.json` (bar width, dashboard, launcher, sidebar) and the `appearance` scales in `shell.json`.
+To change sizes, edit `shell-tokens.json` (bar width, dashboard, launcher, sidebar), the `appearance` scales and the `border` (frame) thickness in `shell.json`. The dashboard size slider needs the plugin built from this repo, so run the installer again after the CI build finishes.
 
 ## Isolation
 

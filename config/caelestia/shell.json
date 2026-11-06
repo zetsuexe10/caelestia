@@ -12,5 +12,9 @@
         "rounding": {
             "scale": 0.9
         }
+    },
+    "border": {
+        "thickness": 6,
+        "rounding": 20
     }
 }
