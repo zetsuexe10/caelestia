@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
+import qs.components.controls
 import qs.modules.nexus.common
 
 PageBase {
@@ -20,8 +21,35 @@ PageBase {
         // Behaviour
         SectionHeader {
             first: true
+            text: Tr.tr("Appearance")
+        }
+
+        StepperRow {
+            first: true
+            label: Tr.tr("Bar width")
+            subtext: Tr.tr("Inner width of the bar in pixels")
+            value: Tokens.sizes.bar.innerWidth
+            from: 24
+            to: 60
+            stepSize: 2
+            onMoved: v => TokenConfig.sizes.bar.innerWidth = v
+        }
+
+        StepperRow {
+            last: true
+            label: Tr.tr("Border thickness")
+            subtext: Tr.tr("Thickness of the screen edge frame")
+            value: Config.border.thickness
+            from: 0
+            to: 20
+            stepSize: 1
+            onMoved: v => GlobalConfig.border.thickness = v
+        }
+
+        SectionHeader {
             text: Tr.tr("Behaviour")
         }
+
 
         ToggleRow {
             first: true

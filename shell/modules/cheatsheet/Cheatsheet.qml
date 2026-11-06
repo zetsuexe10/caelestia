@@ -26,6 +26,8 @@ Scope {
 
     function toggle(): void {
         open = !open;
+        if (open)
+            Keybinds.refresh();
     }
 
     LazyLoader {
@@ -50,14 +52,20 @@ Scope {
                 anchors.left: true
                 anchors.right: true
 
+                Keys.onEscapePressed: root.open = false
+
                 Item {
                     anchors.fill: parent
-                    focus: true
-                    Keys.onEscapePressed: root.open = false
 
                     Rectangle {
                         anchors.fill: parent
-                        color: Qt.rgba(0, 0, 0, 0.45)
+                        color: Qt.rgba(0, 0, 0, root.open ? 0.45 : 0)
+
+                        Behavior on color {
+                            Anim {
+                                type: Anim.FastEffects
+                            }
+                        }
 
                         MouseArea {
                             anchors.fill: parent
@@ -74,6 +82,22 @@ Scope {
 
                         color: Colours.palette.m3surface
                         radius: Tokens.rounding.extraLarge
+
+                        scale: root.open ? 1 : 0.94
+                        opacity: root.open ? 1 : 0
+
+                        Behavior on scale {
+                            Anim {
+                                easing: Tokens.anim.emphasizedDecel
+                                duration: Tokens.anim.durations.normal
+                            }
+                        }
+
+                        Behavior on opacity {
+                            Anim {
+                                type: Anim.FastEffects
+                            }
+                        }
 
                         MouseArea {
                             anchors.fill: parent
@@ -114,16 +138,6 @@ Scope {
                                 focus: true
                                 placeholderText: Tr.tr("Search shortcuts")
                                 font: Tokens.font.body.large
-                                Keys.onEscapePressed: root.open = false
-                            }
-
-                            StyledText {
-                                Layout.fillWidth: true
-                                visible: Keybinds.conflicts.length > 0
-                                text: Tr.tr("Conflicting shortcuts") + ": " + Keybinds.conflicts.join(", ")
-                                color: Colours.palette.m3error
-                                font: Tokens.font.label.medium
-                                wrapMode: Text.WordWrap
                             }
 
                             StyledText {
@@ -178,6 +192,7 @@ Scope {
 
         function open(): void {
             root.open = true;
+            Keybinds.refresh();
         }
 
         function close(): void {
